@@ -34,53 +34,56 @@ namespace Authorization
 
         private void RegisterBtn_Click(object sender, RoutedEventArgs e)
         {
+            string name = NameField.Text.Trim();
+            string surname = SurnameField.Text.Trim();
+            string patronymic = PatronymicField.Text.Trim();
+            string phone = PhoneField.Text.Trim();
+            string email = emailField.Text.Trim();
+            string login = RegLoginField.Text.Trim();
+            string pass = RegPasswordField.Text.Trim();
+            string passApply = PasswordApplyField.Text.Trim();
+            string hashedPass = BCrypt.Net.BCrypt.HashPassword(pass);
+
+            if (name == "" || surname == "" || phone == "" || email == ""
+                || login == "" || pass == "" || passApply == ""
+                || !Regex.IsMatch(phone, phonePattern)
+                || !CheckEmail(email, emailPattern)
+                || !Regex.IsMatch(pass, passPattern))
+                throw new Exception();
+
+            if (db.Users.Any(x => x.Login == login))
+            {
+                MessageBox.Show("Логин занят");
+                return;
+            }
+            phone = Regex.Replace(phone, @"\D", "");
+
+            db.Users.Add(new User
+            {
+                Name = name,
+                Surname = surname,
+                Patronymic = patronymic,
+                Phone = phone,
+                Email = email,
+                Login = login,
+                Password = hashedPass
+            });
+
+            db.SaveChanges();
+            MessageBox.Show("Вы успешно зарегистрировались");
+
+            NameField.Text = "";
+            SurnameField.Text = "";
+            PatronymicField.Text = "";
+            PhoneField.Text = "";
+            emailField.Text = "";
+            RegLoginField.Text = "";
+            RegPasswordField.Text = "";
+            PasswordApplyField.Text = "";
+
             try
             {
-                string name = NameField.Text.Trim();
-                string surname = SurnameField.Text.Trim();
-                string patronymic = PatronymicField.Text.Trim();
-                string phone = PhoneField.Text.Trim();
-                string email = emailField.Text.Trim();
-                string login = RegLoginField.Text.Trim();
-                string pass = RegPasswordField.Text.Trim();
-                string passApply = PasswordApplyField.Text.Trim();
-
-                if (name == "" || surname == "" || phone == "" || email == ""
-                    || login == "" || pass == "" || passApply == ""
-                    || !Regex.IsMatch(phone, phonePattern)
-                    || !CheckEmail(email, emailPattern)
-                    || !Regex.IsMatch(pass, passPattern))
-                    throw new Exception();
-
-                if (db.Users.Any(x => x.Login == login))
-                {
-                    MessageBox.Show("Логин занят");
-                    return;
-                }
-                phone = Regex.Replace(phone, @"\D", "");
-
-                db.Users.Add(new User
-                {
-                    Name = name,
-                    Surname = surname,
-                    Patronymic = patronymic,
-                    Phone = phone,
-                    Email = email,
-                    Login = login,
-                    Password = pass
-                });
-
-                db.SaveChanges();
-                MessageBox.Show("Вы успешно зарегистрировались");
-
-                NameField.Text = "";
-                SurnameField.Text = "";
-                PatronymicField.Text = "";
-                PhoneField.Text = "";
-                emailField.Text = "";
-                RegLoginField.Text = "";
-                RegPasswordField.Text = "";
-                PasswordApplyField.Text = "";
+                
             }
             catch
             {
@@ -93,7 +96,9 @@ namespace Authorization
             string login = LoginField.Text.Trim();
             string pass = PasswordField.Text.Trim();
 
-            bool isUserFound = db.Users.Any(x => x.Login == login && x.Password == pass);
+            User userFound = db.Users.FirstOrDefault(x => x.Login == login);
+
+            bool isUserFound = userFound != null && BCrypt.Net.BCrypt.Verify(pass, userFound.Password);
 
             if (isUserFound) MessageBox.Show("Вы вошли!");
             else MessageBox.Show("Вы не вошли!");
